@@ -1,0 +1,44 @@
+
+{schema}-prod-deploy:
+  extends: .db-change-set-before-script
+  image: 9901510747/liquibase-mysql:latest
+  stage: deploy-prod
+  environment:
+    name: PROD
+  variables:
+     ENV: prod
+     SCHEMA: {schema}
+     LK_LIQUIBASE_USERNAME: ${schema}_USERNAME
+     LK_LIQUIBASE_PASSWORD: ${schema}_PASSWORD
+  script:
+    - echo "Starting Script Deployment in Production .."
+    - echo "Script Deployment in Production Completed!"
+    # - /liquibase/liquibase --defaultsFile=./schema/{schema}/$ENV.properties tag $CI_PIPELINE_ID
+    # - /liquibase/liquibase --defaultsFile=./schema/{schema}/$ENV.properties update --contexts="prod" --log-level=info
+  needs: 
+    - job: {schema}-build
+    - job: {schema}-cmr-check
+  when: manual && (${schema}-cmr-check == success)  # Only run if CMR check succeeds
+  allow_failure: false
+  <<: *prod-branch
+
+  or 
+
+  when: manual
+  allow_failure: false
+  rules:
+    - if: $CI_JOB_STATUS == 'failed' && $CI_JOB_NAME == '{schema}-cmr-check'
+      when: manual
+
+
+
+under needs:
+  remove the 'cmr-check' , then run the pipleine , check the prod jobs can be disabled or not
+under branch:
+  quotes is added *prod-branch", like this and check
+
+ rules:
+    - if: needs.{schema}-cmr-check.result == "success"
+      when: on_success
+    - when: never
+      allow_failure: false
